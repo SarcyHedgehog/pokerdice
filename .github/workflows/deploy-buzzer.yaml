@@ -1,4 +1,4 @@
-# GitHub Actions Workflow to deploy the Poker Dice game to sarcastichedgehog.com/pokerdice
+# GitHub Actions Workflow to deploy the Poker Dice game
 
 name: Deploy Poker Dice to GitHub Pages
 
@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository's code so the workflow can access it
+      # Step 1: Check out the repository's code
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -27,19 +27,19 @@ jobs:
           echo "window.APP_CONFIG = {" > config.js
           echo "  API_KEY: \"${{ secrets.MULTISYNQ_API_KEY }}\"," >> config.js
           echo "  APP_ID: \"${{ secrets.MULTISYNQ_APP_ID }}\"," >> config.js
-          # The BASE_URL should point to the final URL of the game
           echo "  BASE_URL: \"https://sarcastichedgehog.com/pokerdice\"" >> config.js
           echo "};" >> config.js
 
-      # Step 3: Deploy the contents to the gh-pages branch
-      # This action will build and push your project to the deployment branch
+      # Step 3: Deploy the contents to the gh-pages branch using your PAT
       - name: Deploy to GitHub Pages
         uses: JamesIves/github-pages-deploy-action@v4
         with:
-          # The branch the action should deploy to.
+          # --- THIS IS THE CRUCIAL ADDITION ---
+          # This tells the action to use your Personal Access Token.
+          # The name 'GH_PAGES_DEPLOY_TOKEN' must match the secret name in your repo settings.
+          token: ${{ secrets.GH_PAGES_DEPLOY_TOKEN }}
+
+          # The rest of the configuration
           branch: gh-pages
-          # The folder the action should deploy. '.' means the entire repository root.
           folder: .
-          # No target-folder is needed, as the repo name 'pokerdice' provides the path.
-          # Automatically removes files from the gh-pages branch that are no longer in the main branch.
           clean: true
