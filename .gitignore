@@ -1,0 +1,44 @@
+
+---
+
+### .gitignore
+
+Create a new file in your project's root folder named `.gitignore` (note the leading dot) and paste the following content into it. This will prevent your secrets and local work files from ever being uploaded to GitHub.
+
+```gitignore
+# This file tells Git which files and folders to ignore.
+
+# Local Configuration
+# This file contains secret API keys and should never be committed.
+config.js
+
+# Workshop Folder
+# For work-in-progress graphics and other temporary assets.
+/workshop/
+
+# Build output
+/dist/
+/build/
+
+# Node.js dependencies
+/node_modules/
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Editor-specific files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Operating System files
+.DS_Store
+Thumbs.db
