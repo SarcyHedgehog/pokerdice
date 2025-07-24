@@ -79,16 +79,101 @@
             renderFinalScores() { const players = [...this.gameModel.players.values()].filter(p => p.finalHand).sort((a, b) => { if (b.finalHand.rank !== a.finalHand.rank) { return b.finalHand.rank - a.finalHand.rank; } for (let i = 0; i < 5; i++) { if (b.finalHand.values[i] !== a.finalHand.values[i]) { return b.finalHand.values[i] - a.finalHand.values[i]; } } return 0; }); if (players.length > 0) { const winner = players[0]; this.dom.winnerName.textContent = `${winner.name} wins with a ${winner.finalHand.name}!`; this.dom.finalScoresList.innerHTML = players.map(p => { const isWinner = p.viewId === winner.viewId; const diceHTML = p.finalHand.values.map(v => `<img src="textures/face${v}.png" class="w-6 h-6 rounded-sm">`).join(''); return `<div class="flex justify-between items-center text-lg p-3 rounded-lg ${isWinner ? 'bg-cyan-800 ring-2 ring-cyan-400' : 'bg-slate-700'}"><span class="${p.viewId === this.viewId ? 'text-cyan-400' : ''} ${isWinner ? 'font-extrabold' : 'font-bold'}">${p.name}</span><div class="flex items-center gap-x-2"><span class="font-bold hidden sm:block">${p.finalHand.name}</span><div class="flex gap-x-1">${diceHTML}</div></div></div>`; }).join(''); } else { this.dom.winnerName.textContent = "Game Over!"; this.dom.finalScoresList.innerHTML = `<p class="text-center italic text-slate-400">No final scores were recorded.</p>`; } }
         }
 
-        // --- LOBBY CONTROLLER (with refined PWA listeners) ---
+         // --- LOBBY CONTROLLER (with corrected localStorage keys) ---
         class AppController {
-            constructor() { this.dom = { lobby: document.getElementById('lobby-screen'), nameInput: document.getElementById('name-input'), codeInput: document.getElementById('code-input'), showCreateButton: document.getElementById('show-create-button'), showJoinButton: document.getElementById('show-join-button'), goButton: document.getElementById('go-button'), backButton: document.getElementById('back-button'), joinCreateButtons: document.getElementById('join-create-buttons'), codeEntry: document.getElementById('code-entry'), installButton: document.getElementById('install-button'), iosInstallHelper: document.getElementById('ios-install-helper') }; this.setupLobbyListeners(); this.setupPwaListeners(); this.loadName(); }
-            setupLobbyListeners() { this.dom.showCreateButton.addEventListener('click', () => this.showCodeEntry(true)); this.dom.showJoinButton.addEventListener('click', () => this.showCodeEntry(false)); this.dom.backButton.addEventListener('click', () => this.showMainMenu()); this.dom.goButton.addEventListener('click', () => this.joinSession()); this.dom.nameInput.addEventListener('change', () => this.saveName()); }
-            setupPwaListeners() { let deferredPrompt; const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; if (isIos() && !window.navigator.standalone) { this.dom.iosInstallHelper.classList.remove('hidden'); } window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; if (!isIos()) { this.dom.installButton.classList.remove('hidden'); } this.dom.installButton.addEventListener('click', () => { this.dom.installButton.classList.add('hidden'); deferredPrompt.prompt(); deferredPrompt.userChoice.then(() => { deferredPrompt = null; }); }); }); if ('serviceWorker' in navigator) { navigator.serviceWorker.register('./sw.js').catch(e => console.error('SW registration failed:', e)); } }
-            loadName() { const n = localStorage.getItem('pokerDice_playerName'); if (n) this.dom.nameInput.value = n; }
-            saveName() { localStorage.setItem('pokerDice_playerName', this.dom.nameInput.value); }
-            showCodeEntry(isCreating) { this.dom.joinCreateButtons.classList.add('hidden'); this.dom.codeEntry.classList.remove('hidden'); if (isCreating) { this.dom.codeInput.value = Array.from({ length: 5 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join(''); } else { this.dom.codeInput.value = ''; } this.dom.codeInput.focus(); }
-            showMainMenu() { this.dom.joinCreateButtons.classList.remove('hidden'); this.dom.codeEntry.classList.add('hidden'); }
-            async joinSession() { const name = this.dom.nameInput.value.trim(); const code = this.dom.codeInput.value.trim().toUpperCase(); if (!name || !code) { alert("Please enter your name and a game code!"); return; } this.saveName(); window.sessionLobbyCode = code; try { const session = await Multisynq.Session.join({ apiKey: window.APP_CONFIG.API_KEY, appId: window.APP_CONFIG.APP_ID, name: code, password: 'poker-dice-default-pw', model: GameModel, view: GameView, viewData: { name: name } }); if (session.model.gameState === 'IN_PROGRESS' || session.model.gameState === 'GAME_OVER') { console.log("Joined as spectator."); } } catch (err) { console.error("LOBBY: Failed to join session:", err); alert("Could not join game. Check the code or try again."); } }
+            constructor() {
+                this.dom = {
+                    lobby: document.getElementById('lobby-screen'), nameInput: document.getElementById('name-input'), codeInput: document.getElementById('code-input'),
+                    showCreateButton: document.getElementById('show-create-button'), showJoinButton: document.getElementById('show-join-button'),
+                    goButton: document.getElementById('go-button'), backButton: document.getElementById('back-button'),
+                    joinCreateButtons: document.getElementById('join-create-buttons'), codeEntry: document.getElementById('code-entry'),
+                    installButton: document.getElementById('install-button'), iosInstallHelper: document.getElementById('ios-install-helper')
+                };
+                this.setupLobbyListeners();
+                this.setupPwaListeners();
+                this.loadName();
+            }
+            setupLobbyListeners() {
+                this.dom.showCreateButton.addEventListener('click', () => this.showCodeEntry(true));
+                this.dom.showJoinButton.addEventListener('click', () => this.showCodeEntry(false));
+                this.dom.backButton.addEventListener('click', () => this.showMainMenu());
+                this.dom.goButton.addEventListener('click', () => this.joinSession());
+                this.dom.nameInput.addEventListener('change', () => this.saveName());
+            }
+            setupPwaListeners() {
+                let deferredPrompt;
+                const isIos = () => /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                if (isIos() && !window.navigator.standalone) {
+                    this.dom.iosInstallHelper.classList.remove('hidden');
+                }
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    deferredPrompt = e;
+                    if (!isIos()) {
+                        this.dom.installButton.classList.remove('hidden');
+                    }
+                    this.dom.installButton.addEventListener('click', () => {
+                        this.dom.installButton.classList.add('hidden');
+                        deferredPrompt.prompt();
+                        deferredPrompt.userChoice.then(() => {
+                            deferredPrompt = null;
+                        });
+                    });
+                });
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('./sw.js').catch(e => console.error('SW registration failed:', e));
+                }
+            }
+            loadName() {
+                // CHANGED: Using a unique key for this game
+                const n = localStorage.getItem('pokerDice_playerName');
+                if (n) this.dom.nameInput.value = n;
+            }
+            saveName() {
+                // CHANGED: Using a unique key for this game
+                localStorage.setItem('pokerDice_playerName', this.dom.nameInput.value);
+            }
+            showCodeEntry(isCreating) {
+                this.dom.joinCreateButtons.classList.add('hidden');
+                this.dom.codeEntry.classList.remove('hidden');
+                if (isCreating) {
+                    this.dom.codeInput.value = Array.from({ length: 5 }, () => String.fromCharCode(65 + Math.floor(Math.random() * 26))).join('');
+                } else {
+                    this.dom.codeInput.value = '';
+                }
+                this.dom.codeInput.focus();
+            }
+            showMainMenu() {
+                this.dom.joinCreateButtons.classList.remove('hidden');
+                this.dom.codeEntry.classList.add('hidden');
+            }
+            async joinSession() {
+                const name = this.dom.nameInput.value.trim();
+                const code = this.dom.codeInput.value.trim().toUpperCase();
+                if (!name || !code) {
+                    alert("Please enter your name and a game code!");
+                    return;
+                }
+                this.saveName();
+                window.sessionLobbyCode = code;
+                try {
+                    const session = await Multisynq.Session.join({
+                        apiKey: window.APP_CONFIG.API_KEY,
+                        appId: window.APP_CONFIG.APP_ID,
+                        name: code,
+                        password: 'poker-dice-default-pw',
+                        model: GameModel,
+                        view: GameView,
+                        viewData: { name: name }
+                    });
+                    if (session.model.gameState === 'IN_PROGRESS' || session.model.gameState === 'GAME_OVER') {
+                        console.log("Joined as spectator.");
+                    }
+                } catch (err) {
+                    console.error("LOBBY: Failed to join session:", err);
+                    alert("Could not join game. Check the code or try again.");
+                }
+            }
         }
         new AppController();
     </script>
